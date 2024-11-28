@@ -377,7 +377,7 @@ uploadSshKey() {
   # we generate a temporary ssh keypair that we can use during nixos-anywhere
   # ssh-copy-id requires this directory
   mkdir -p "$HOME/.ssh/"
-  if [[ -n {$deploymentKey} ]]; then
+  if [[ -n ${deploymentKey} ]]; then
     cp "$deploymentKey" "$sshKeyDir/nixos-anywhere"
     ssh-keygen -y -f "$sshKeyDir/nixos-anywhere" >"$sshKeyDir/nixos-anywhere.pub"
     # echo "$sshKeyDir"
