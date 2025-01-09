@@ -1,0 +1,75 @@
+(import ./lib/test-base.nix) {
+  name = "from-nixos-separated-phases";
+  nodes = {
+    installer = ./modules/installer.nix;
+    installed = {
+      services.openssh.enable = true;
+      virtualisation.memorySize = 1024;
+
+      users.users.nixos = {
+        isNormalUser = true;
+        openssh.authorizedKeys.keyFiles = [ ./modules/ssh-keys/ssh.pub ];
+        extraGroups = [ "wheel" ];
+      };
+      security.sudo.enable = true;
+      security.sudo.wheelNeedsPassword = false;
+    };
+  };
+  testScript = ''
+    start_all()
+    installer.succeed("echo super-secret > /tmp/disk-1.key")
+    with subtest("Kexec Phase"):
+      installer.succeed("""
+        nixos-anywhere \
+          -i /root/.ssh/install_key \
+          --deployment-key /root/.ssh/install_key \
+          --debug \
+          --kexec /etc/nixos-anywhere/kexec-installer \
+          --phases kexec \
+          --disk-encryption-keys /tmp/disk-1.key /tmp/disk-1.key \
+          --disk-encryption-keys /tmp/disk-2.key <(echo another-secret) \
+          --store-paths /etc/nixos-anywhere/disko /etc/nixos-anywhere/system-to-install \
+          nixos@installed >&2
+      """)
+    with subtest("Disko Phase"):
+      output = installer.succeed("""
+        nixos-anywhere \
+          -i /root/.ssh/install_key \
+          --deployment-key /root/.ssh/install_key \
+          --debug \
+          --phases disko \
+          --disk-encryption-keys /tmp/disk-1.key /tmp/disk-1.key \
+          --disk-encryption-keys /tmp/disk-2.key <(echo another-secret) \
+          --store-paths /etc/nixos-anywhere/disko /etc/nixos-anywhere/system-to-install \
+          installed >&2
+        echo "disk-1.key: '$(ssh -i /root/.ssh/install_key -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+          root@installed cat /tmp/disk-1.key)'"
+        echo "disk-2.key: '$(ssh -i /root/.ssh/install_key -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+          root@installed cat /tmp/disk-2.key)'"
+    """)
+    assert "disk-1.key: 'super-secret'" in output, f"output does not contain expected values: {output}"
+    assert "disk-2.key: 'another-secret'" in output, f"output does not contain expected values: {output}"
+
+    with subtest("Install Phase"):
+      output = installer.succeed("""
+        nixos-anywhere \
+          -i /root/.ssh/install_key \
+          --deployment-key /root/.ssh/install_key \
+          --debug \
+          --phases install \
+          --store-paths /etc/nixos-anywhere/disko /etc/nixos-anywhere/system-to-install \
+          root@installed >&2
+    """)
+    # assert "/mnt/boot" in output, f"output does not contain bootloader: {output}"
+    with subtest("Reboot Phase"):
+      output = installer.succeed("""
+        nixos-anywhere \
+          -i /root/.ssh/install_key \
+          --deployment-key /root/.ssh/install_key \
+          --debug \
+          --phases reboot \
+          --store-paths /etc/nixos-anywhere/disko /etc/nixos-anywhere/system-to-install \
+          root@installed >&2
+    # """)
+  '';
+}

@@ -82,6 +82,7 @@ Options:
 * --deployment-key <path>
   choose a specific deployment key, if this is not provided a deployment key
   will be automatically generated
+  TODO: Don't want password protected probably.
 * -s, --store-paths <disko-script> <nixos-system>
   set the store paths to the disko-script and nixos-system directly
   if this is given, flake is not needed
@@ -374,18 +375,14 @@ runVmTest() {
 }
 
 uploadSshKey() {
-  # we generate a temporary ssh keypair that we can use during nixos-anywhere
   # ssh-copy-id requires this directory
   mkdir -p "$HOME/.ssh/"
-  if [[ -n ${deploymentKey} ]]; then
+  if [[ -n ${deploymentKey+x} ]]; then
     cp "$deploymentKey" "$sshKeyDir/nixos-anywhere"
     ssh-keygen -y -f "$sshKeyDir/nixos-anywhere" >"$sshKeyDir/nixos-anywhere.pub"
-    # echo "$sshKeyDir"
-    # sleep 20
   else
+    # we generate a temporary ssh keypair that we can use during nixos-anywhere
     ssh-keygen -t ed25519 -f "$sshKeyDir"/nixos-anywhere -P "" -C "nixos-anywhere" >/dev/null
-    # echo "$sshKeyDir"
-    # sleep 20
   fi
 
   declare -a sshCopyIdArgs
