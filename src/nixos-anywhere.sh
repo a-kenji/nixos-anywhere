@@ -82,7 +82,6 @@ Options:
 * --deployment-key <path>
   choose a specific deployment key, if this is not provided a deployment key
   will be automatically generated
-  TODO: Don't want password protected probably.
 * -s, --store-paths <disko-script> <nixos-system>
   set the store paths to the disko-script and nixos-system directly
   if this is given, flake is not needed
@@ -378,6 +377,7 @@ uploadSshKey() {
   # ssh-copy-id requires this directory
   mkdir -p "$HOME/.ssh/"
   if [[ -n ${deploymentKey+x} ]]; then
+    #TODO: use --identity_file ./path
     cp "$deploymentKey" "$sshKeyDir/nixos-anywhere"
     ssh-keygen -y -f "$sshKeyDir/nixos-anywhere" >"$sshKeyDir/nixos-anywhere.pub"
   else

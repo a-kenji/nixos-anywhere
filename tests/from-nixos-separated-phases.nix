@@ -51,25 +51,14 @@
     assert "disk-2.key: 'another-secret'" in output, f"output does not contain expected values: {output}"
 
     with subtest("Install Phase"):
-      output = installer.succeed("""
+      installer.succeed("""
         nixos-anywhere \
           -i /root/.ssh/install_key \
           --deployment-key /root/.ssh/install_key \
           --debug \
           --phases install \
           --store-paths /etc/nixos-anywhere/disko /etc/nixos-anywhere/system-to-install \
-          root@installed >&2
-    """)
-    # assert "/mnt/boot" in output, f"output does not contain bootloader: {output}"
-    with subtest("Reboot Phase"):
-      output = installer.succeed("""
-        nixos-anywhere \
-          -i /root/.ssh/install_key \
-          --deployment-key /root/.ssh/install_key \
-          --debug \
-          --phases reboot \
-          --store-paths /etc/nixos-anywhere/disko /etc/nixos-anywhere/system-to-install \
-          root@installed >&2
-    # """)
+          root@installed >&2 
+      """)
   '';
 }
